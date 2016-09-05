@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="UTF-8">
+	<title>Survival Game(測試版)</title>
+	<script src="jquery-3.1.0.min.js"></script>
+	<script src="soundmanager2-jsmin.js"></script>
+<script>
+</script>
+	<script>
+		//隨機取出整數
+		function getRandomInt(min , max){
+			return Math.floor(Math.random() * ( max - min + 1)) +min;
+		};
+
+
+		$(function(){
+			var $body = $("body"),
+				$stage = $("#stage"),
+				$player = $("#player"),
+				$score = $("#score"),
+				counter = 0,
+				p_speed = 4,
+				p_xway = 0,
+				p_yway = 0,
+				b_r = Math.sqrt(Math.pow($stage.width()/2,2)+Math.pow($stage.height()/2,2)),
+				b_speed = 2;
+
+			var KeyNum={
+				UP:38,
+				DOWN:40,
+				LEFT:37,
+				RIGHT:39
+			};
+
+			soundManager.setup({
+				  onready: function() {
+				    var mySound = soundManager.createSound({
+				      id: 'aSound',
+				      url: 'Four_on_the_Dancefloor.mp3'
+				    });
+				    mySound.play();
+				    startGame()
+				  },
+				});
+
+
+
+			function startGame(){
+			$player.css("left",($stage.width()-$player.width())/2+"px");
+			$player.css("top",($stage.height()-$player.height())/2+"px");
+
+			$body.keydown(function(e){
+
+				switch(e.which)
+				{
+					case KeyNum.UP: p_yway=-1;
+						break;
+					case KeyNum.DOWN: p_yway=1;
+						break;
+					case KeyNum.LEFT: p_xway=-1;
+						break;
+					case KeyNum.RIGHT: p_xway=1;
+						break;	
+					}
+				});
+
+			$body.keyup(function(){
+				p_xway = 0,
+				p_yway = 0;
+
+				});
+
+			//建立子彈
+			function creatBullet(){
+				$stage.append("<div class='sprite bullet'></div>");
+				var b = $stage.find(".bullet:last"),
+					b_ang = getRandomInt(0,359),
+					bx = $stage.width()/2+b_r*Math.cos(Math.PI*b_ang/180)-b.width()/2;
+					by = $stage.height()/2+b_r*Math.sin(Math.PI*b_ang/180)-b.height()/2;
+					b_end_ang = getRandomInt(b_ang+90,b_ang+270);
+					b.data("x_speed",b_speed*Math.cos(Math.PI*b_end_ang/180));
+					b.data("y_speed",b_speed*Math.sin(Math.PI*b_end_ang/180));
+				b.css("left",bx+"px");
+				b.css("top",by+"px");
+
+
+			};
+			for (var i=0;i<100;i++)
+			creatBullet();
+
+			//角色控制動畫
+			var loop = setInterval(function(){
+
+				//player動畫
+				var x_speed = 0,
+					y_speed = 0,
+					x = parseInt($player.css("left")),
+					y = parseInt($player.css("top"));
+
+				if(p_xway == -1 && p_yway == 0) x_speed = p_speed * p_xway;
+				if(p_xway == 0 && p_yway == -1) y_speed = p_speed * p_yway;
+				if(p_xway == 1 && p_yway == 0) x_speed = p_speed * p_xway;
+				if(p_xway == 0 && p_yway == 1) y_speed = p_speed * p_yway;
+				if (p_xway != 0 && p_yway != 0){
+					x_speed = p_speed/Math.sqrt(2) * p_xway;
+					y_speed = p_speed/Math.sqrt(2) * p_yway;
+				}
+				x = x+x_speed;
+				y = y+y_speed;
+				if(x<0) x=0;
+				if(y<0) y=0;
+				if(x>$stage.width()-$player.width()) x=$stage.width()-$player.width();
+				if(y>$stage.height()-$player.height()) y=$stage.height()-$player.height();
+				$player.css("left",x+"px");
+				$player.css("top",y+"px");
+
+				//子彈動畫
+				$(".bullet").each(function(){
+					var $this = $(this),
+						bmx = parseInt($this.css("left")),
+						bmy = parseInt($this.css("top")),
+						dist = Math.sqrt(Math.pow($stage.width()/2-(bmx+$this.width()/2),2)+Math.pow($stage.height()/2-(bmy+$this.height()/2),2));
+						//dist = Math.sqrt(Math.pow($stage.width()/2-(bmx-$this.width()/2),2)+Math.pow($stage.height()/2-(bmy-$this.height()/2),2));
+					bmx =Math.round(bmx + $this.data("x_speed"));	
+					bmy =Math.round(bmy + $this.data("y_speed"));	
+					$this.css("left",bmx+"px");
+					$this.css("top",bmy+"px");
+					if ($this.width()/2+b_r < dist){
+						$this.remove();
+						creatBullet();
+					}
+
+					//子彈與角色碰撞
+					var pcx = parseInt($player.css("left"))+$player.width()/2,
+						pcy = parseInt($player.css("top"))+$player.height()/2,
+						p_d_dist = Math.sqrt(Math.pow(pcx-(bmx+$this.width()/2),2)+Math.pow(pcy-(bmy+$this.height()/2),2));
+
+					if($this.width()/2+$player.width()/2>p_d_dist)
+					{
+						clearInterval(loop);
+					}
+				});
+
+				//顯示分數
+				$score.html(++counter);
+			},1000/60);
+
+			}
+			
+		});
+	</script>
+	<style>
+		body{
+			text-align: center;
+
+		}
+		#stage{
+			text-align: left;
+			display: inline-block;
+			position: relative;
+			width: 500px;
+			height: 400px;
+			background:url(space.jpg);
+			overflow: hidden;
+		}
+		.sprite{
+			display: inline-block;
+			position: absolute;
+		}
+		#player{
+			width: 20px;
+			height: 20px;
+			background: red;
+			border-radius: 10px;
+		}
+		.bullet{
+			width: 6px;
+			height: 6px;
+			background:yellow;
+			border-radius: 3px;
+		}
+		#score{
+			width:500px;
+			color:white;
+			font-size: 25px;
+			padding-right:10px;
+			z-index: 999;
+			text-align: right;
+		}
+	</style>
+</head>
+<body>
+	<div id="stage">
+		<div id="player" class="sprite"></div>
+		<div id="score" class="sprite">0000</div>
+	</div>
+</body>
+</html>
+
+
